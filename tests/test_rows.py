@@ -50,7 +50,7 @@ def test_rows_where_order_by(where, order_by, expected_ids, fresh_db):
         ],
         pk="id",
     )
-    assert expected_ids == [r["id"] for r in table.rows_where(where, order_by=order_by)]
+    assert expected_ids == [r["id"] for r in list(table.rows_where(where, order_by=order_by))]
 
 
 @pytest.mark.parametrize(

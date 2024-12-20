@@ -35,3 +35,15 @@ def test_get_success(fresh_db):
         {"id": 1, "name": "Cleo", "age": 4, "is_good": True}, pk="id"
     )
     assert fresh_db["dogs"].get(1)['name'] == 'Cleo'
+
+def test_get_addrdict(fresh_db):
+    fresh_db["dogs"].insert(
+        {"id": 1, "name": "Cleo", "age": 4, "is_good": True}, pk="id"
+    )
+    dog = fresh_db["dogs"].get(1)
+
+    # Assert dict style
+    assert dog['name'] == 'Cleo'
+
+    # Assert dot notation style
+    assert dog.name == 'Cleo'

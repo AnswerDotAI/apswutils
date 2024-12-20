@@ -11,6 +11,7 @@ from functools import cache
 import uuid
 import apsw.ext
 import apsw.bestpractice
+from fastcore.basics import AttrDict
 
 # We don't use apsw.bestpractice.connection_dqs because sqlite-utils 
 # allowed doublequotes
@@ -415,10 +416,14 @@ class Database:
           parameters, or a dictionary for ``where id = :id``
         """
         cursor = self.execute(sql, tuple(params or tuple()))
-        try: columns = [c[0] for c in cursor.description]
-        except apsw.ExecutionCompleteError: return []
-        for row in cursor:
-            yield dict(zip(columns, row))
+        # Row results will be dataclasses
+        cursor.row_trace = apsw.ext.DataClassRowFactory(
+            dataclass_kwargs={"frozen": True}
+        )                
+        # Yield attrdict so rows can be accessed as row.id or row['id']
+        for row in cursor: yield AttrDict(row.__dict__)        
+        # Cleanup the row_trace
+        cursor.row_trace = None        
 
     def execute(
         self, sql: str, parameters: Optional[Union[Iterable, dict]] = None
@@ -1283,12 +1288,8 @@ class Queryable:
             raise ValueError("Cannot use offset without limit")
         if offset is not None:
             sql += f" offset {offset}"
-        cursor = self.db.execute(sql, where_args or [])
-        # If no records found, return empty list
-        try: columns = [c[0] for c in cursor.description]
-        except apsw.ExecutionCompleteError: return []
-        for row in cursor:
-            yield dict(zip(columns, row))
+
+        return list(self.db.query(sql, where_args or []))
 
     def pks_and_rows_where(
         self,
