@@ -1,7 +1,7 @@
 # This file is from sqlite-utils and copyright and license is the same as that project
 __all__ = ['Database', 'Queryable', 'Table', 'View']
 
-from .utils import ( chunks, hash_record, sqlite3, OperationalError, suggest_column_types, types_for_column_types, column_affinity, find_spatialite,)
+from .utils import ( chunks, hash_record, OperationalError, suggest_column_types, types_for_column_types, column_affinity, find_spatialite,)
 import binascii
 from collections import namedtuple
 from collections.abc import Mapping
@@ -9,6 +9,7 @@ import contextlib, datetime, decimal, inspect, itertools, json, os, pathlib, re,
 from typing import ( cast, Any, Callable, Dict, Generator, Iterable, Union, Optional, List, Tuple,Iterator)
 from functools import cache
 import uuid
+import apsw
 import apsw.ext
 import apsw.bestpractice
 
@@ -219,7 +220,7 @@ class Database:
         dB = Database(memory=True)
 
     :param filename_or_conn: String path to a file, or a ``pathlib.Path`` object, or a
-      ``sqlite3`` connection
+      ``apsw`` connection
     :param memory: set to ``True`` to create an in-memory database
     :param memory_name: creates a named in-memory database that can be shared across multiple connections
     :param recreate: set to ``True`` to delete and recreate a file database (**dangerous**)
@@ -237,7 +238,7 @@ class Database:
 
     def __init__(
         self,
-        filename_or_conn: Optional[Union[str, pathlib.Path, sqlite3.Connection]] = None,
+        filename_or_conn: Optional[Union[str, pathlib.Path, apsw.Connection]] = None,
         memory: bool = False,
         memory_name: Optional[str] = None,
         recreate: bool = False,
@@ -253,11 +254,11 @@ class Database:
             uri = "file:{}?mode=memory&cache=shared".format(memory_name)
             # The flags being set allow apswutils to maintain the same behavior here
             # as sqlite-minutils
-            self.conn = sqlite3.Connection(
+            self.conn = apsw.Connection(
                 uri, flags=apsw.SQLITE_OPEN_URI|apsw.SQLITE_OPEN_READWRITE
             )
         elif memory or filename_or_conn == ":memory:":
-            self.conn = sqlite3.Connection(":memory:")
+            self.conn = apsw.Connection(":memory:")
         elif isinstance(filename_or_conn, (str, pathlib.Path)):
             if recreate and os.path.exists(filename_or_conn):
                 try:
@@ -265,9 +266,9 @@ class Database:
                 except OSError:
                     # Avoid mypy and __repr__ errors, see:
                     # https://github.com/simonw/sqlite-utils/issues/503
-                    self.conn = sqlite3.Connection(":memory:")
+                    self.conn = apsw.Connection(":memory:")
                     raise
-            self.conn = sqlite3.Connection(str(filename_or_conn))
+            self.conn = apsw.Connection(str(filename_or_conn))
         else:
             assert not recreate, "recreate cannot be used with connections, only paths"
             self.conn = filename_or_conn
@@ -368,7 +369,7 @@ class Database:
                         fn_name, fn, arity,  **dict(kwargs, deterministic=True)
                     )
                     registered = True
-                except sqlite3.Error:  # Remember, sqlite3 here is actually apsw
+                except apsw.Error:
                     # TODO Find the precise error, sqlite-minutils used sqlite3.NotSupportedError
                     # but as this isn't defined in APSW we fall back to apsw.Error
                     pass
@@ -422,9 +423,9 @@ class Database:
 
     def execute(
         self, sql: str, parameters: Optional[Union[Iterable, dict]] = None
-    ) -> sqlite3.Cursor:
+    ) -> apsw.Cursor:
         """
-        Execute SQL query and return a ``sqlite3.Cursor``.
+        Execute SQL query and return a ``apsw.Cursor``.
 
         :param sql: SQL query to execute
         :param parameters: Parameters to use in that query - an iterable for ``where id = ?``
@@ -435,9 +436,9 @@ class Database:
         if parameters: return self.conn.execute(sql, parameters)
         else: return self.conn.execute(sql)
 
-    def executescript(self, sql: str) -> sqlite3.Cursor:
+    def executescript(self, sql: str) -> apsw.Cursor:
         """
-        Execute multiple SQL statements separated by ; and return the ``sqlite3.Cursor``.
+        Execute multiple SQL statements separated by ; and return the ``apsw.Cursor``.
 
         :param sql: SQL to execute
         """

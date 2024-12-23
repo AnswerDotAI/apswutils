@@ -1,6 +1,5 @@
 from apswutils.db import ForeignKey
 from apswutils.utils import OperationalError
-from sqlite3 import IntegrityError
 import pytest
 import apsw
 from collections.abc import Mapping
@@ -398,7 +397,7 @@ def test_transform_verify_foreign_keys(fresh_db):
     try:
         fresh_db["authors"].transform(rename={"id": "id2"})
         fresh_db.commit()
-    except apsw.ConstraintError:
+    except apsw.SQLError:
         fresh_db.rollback()
 
     # This should have rolled us back
@@ -435,9 +434,9 @@ def test_transform_add_foreign_keys_from_scratch(fresh_db):
         'CREATE TABLE "places" (\n'
         "   [id] INTEGER,\n"
         "   [name] TEXT,\n"
-        "   [country] INTEGER REFERENCES [country]([id]),\n"
-        "   [continent] INTEGER REFERENCES [continent]([id]),\n"
-        "   [city] INTEGER REFERENCES [city]([id])\n"
+        "   [country] INTEGER REFERENCES [country]([id]) ON UPDATE CASCADE ON DELETE CASCADE,\n"
+        "   [continent] INTEGER REFERENCES [continent]([id]) ON UPDATE CASCADE ON DELETE CASCADE,\n"
+        "   [city] INTEGER REFERENCES [city]([id]) ON UPDATE CASCADE ON DELETE CASCADE\n"
         ")"
     )
 
@@ -506,8 +505,8 @@ def test_transform_replace_foreign_keys(fresh_db, foreign_keys):
         'CREATE TABLE "places" (\n'
         "   [id] INTEGER,\n"
         "   [name] TEXT,\n"
-        "   [country] INTEGER REFERENCES [country]([id]),\n"
-        "   [continent] INTEGER REFERENCES [continent]([id]),\n"
+        "   [country] INTEGER REFERENCES [country]([id]) ON UPDATE CASCADE ON DELETE CASCADE,\n"
+        "   [continent] INTEGER REFERENCES [continent]([id]) ON UPDATE CASCADE ON DELETE CASCADE,\n"
         "   [city] INTEGER\n"
         ")"
     )

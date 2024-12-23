@@ -1,3 +1,4 @@
+import apsw
 from apswutils.db import (
     Index,
     Database,
@@ -9,7 +10,7 @@ from apswutils.db import (
     Table,
     View,
 )
-from apswutils.utils import hash_record, sqlite3
+from apswutils.utils import hash_record
 import collections
 import datetime
 import decimal
@@ -17,7 +18,6 @@ import json
 import pathlib
 import pytest
 import uuid
-import apsw
 
 try:
     import pandas as pd  # type: ignore
@@ -303,8 +303,8 @@ def test_self_referential_foreign_key(fresh_db):
     assert (
         "CREATE TABLE [test_table] (\n"
         "   [id] INTEGER PRIMARY KEY,\n"
-        "   [ref] INTEGER REFERENCES [test_table]([id])\n"
-        ")"
+        "   [ref] INTEGER REFERENCES [test_table]([id]) ON UPDATE CASCADE ON DELETE CASCADE"
+        "\n)"
     ) == table.schema
 
 
@@ -491,7 +491,7 @@ def test_add_column_foreign_key(fresh_db):
     assert fresh_db["dogs"].schema == (
         'CREATE TABLE "dogs" (\n'
         "   [name] TEXT,\n"
-        "   [breed_id] INTEGER REFERENCES [breeds]([rowid])\n"
+        "   [breed_id] INTEGER REFERENCES [breeds]([rowid]) ON UPDATE CASCADE ON DELETE CASCADE\n"
         ")"
     )
     # And again with an explicit primary key column
@@ -500,8 +500,8 @@ def test_add_column_foreign_key(fresh_db):
     assert fresh_db["dogs"].schema == (
         'CREATE TABLE "dogs" (\n'
         "   [name] TEXT,\n"
-        "   [breed_id] INTEGER REFERENCES [breeds]([rowid]),\n"
-        "   [subbreed_id] TEXT REFERENCES [subbreeds]([primkey])\n"
+        "   [breed_id] INTEGER REFERENCES [breeds]([rowid]) ON UPDATE CASCADE ON DELETE CASCADE,\n"
+        "   [subbreed_id] TEXT REFERENCES [subbreeds]([primkey]) ON UPDATE CASCADE ON DELETE CASCADE\n"
         ")"
     )
 
@@ -514,7 +514,7 @@ def test_add_foreign_key_guess_table(fresh_db):
     assert fresh_db["dogs"].schema == (
         'CREATE TABLE "dogs" (\n'
         "   [name] TEXT,\n"
-        "   [breed_id] INTEGER REFERENCES [breeds]([id])\n"
+        "   [breed_id] INTEGER REFERENCES [breeds]([id]) ON UPDATE CASCADE ON DELETE CASCADE\n"
         ")"
     )
 
@@ -717,7 +717,7 @@ def test_columns_not_in_first_record_should_not_cause_batch_to_be_too_large(fres
         fresh_db["too_many_columns"].insert_all(
             records, alter=True, batch_size=batch_size
         )
-    except sqlite3.OperationalError:
+    except OperationalError:
         raise
 
 
@@ -1312,7 +1312,7 @@ def test_rename_table(fresh_db):
     assert ["renamed"] == fresh_db.table_names()
     assert [{"foo": "bar"}] == list(fresh_db["renamed"].rows)
     # Should error if table does not exist:
-    with pytest.raises(sqlite3.SQLError):
+    with pytest.raises(apsw.SQLError):
         fresh_db.rename_table("does_not_exist", "renamed")
 
 

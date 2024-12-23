@@ -1,5 +1,5 @@
 from apswutils import Database
-import sqlite3
+import apsw
 import pathlib
 import pytest
 
@@ -13,7 +13,7 @@ def test_recreate_ignored_for_in_memory():
 
 
 def test_recreate_not_allowed_for_connection():
-    conn = sqlite3.connect(":memory:")
+    conn = apsw.Connection(":memory:")
     with pytest.raises(AssertionError):
         Database(conn, recreate=True)
 

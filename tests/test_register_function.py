@@ -2,7 +2,7 @@
 import pytest
 import sys
 from unittest.mock import MagicMock, call
-from apswutils.utils import sqlite3
+import apsw
 
 
 def test_register_function(fresh_db):
@@ -60,9 +60,9 @@ def test_register_function_deterministic_tries_again_if_exception_raised(fresh_d
         nonlocal first
         if first:
             first = False
-            raise sqlite3.Error()
+            raise apsw.Error()
 
-    # But if sqlite3.NotSupportedError is raised, it tries again
+    # But if apsw.NotSupportedError is raised, it tries again
     fresh_db.conn.create_scalar_function.reset_mock()
     fresh_db.conn.create_scalar_function.side_effect = side_effect
 
