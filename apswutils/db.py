@@ -8,6 +8,7 @@ from typing import cast, Any, Callable, Dict, Generator, Iterable, Union, Option
 from functools import cache
 import contextlib, datetime, decimal, inspect, itertools, json, os, pathlib, re, secrets, textwrap, binascii, uuid, logging
 import apsw.ext, apsw.bestpractice
+from fastcore.basics import AttrDict
 
 logger = logging.getLogger('apsw')
 logger.setLevel(logging.ERROR)
@@ -414,10 +415,14 @@ class Database:
           parameters, or a dictionary for ``where id = :id``
         """
         cursor = self.execute(sql, tuple(params or tuple()))
-        try: columns = [c[0] for c in cursor.description]
-        except apsw.ExecutionCompleteError: return []
-        for row in cursor:
-            yield dict(zip(columns, row))
+        # Row results will be dataclasses
+        cursor.row_trace = apsw.ext.DataClassRowFactory(
+            dataclass_kwargs={"frozen": True}
+        )
+        # Yield attrdict so rows can be accessed as row.id or row['id']
+        for row in cursor: yield AttrDict(row.__dict__)
+        # Cleanup the row_trace
+        cursor.row_trace = None
 
     def execute(
         self, sql: str, parameters: Optional[Union[Iterable, dict]] = None
