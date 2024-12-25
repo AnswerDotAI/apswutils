@@ -34,4 +34,4 @@ def test_query_attr_dict(fresh_db):
     assert results == [{"name": "Pancakes"}, {"name": "Cleo"}]
     assert results[0] == {"name": "Pancakes"}
     obj = AttrDict({"name": "Pancakes"})
-assert results[0].name == obj.name
+    assert results[0].name == obj.name

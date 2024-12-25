@@ -2,6 +2,7 @@
 __all__ = ['Database', 'Queryable', 'Table', 'View']
 
 from .utils import chunks, hash_record, OperationalError, suggest_column_types, types_for_column_types, column_affinity, find_spatialite
+from .ext import AttrDictRowFactory
 from collections import namedtuple
 from collections.abc import Mapping
 from typing import cast, Any, Callable, Dict, Generator, Iterable, Union, Optional, List, Tuple, Iterator
@@ -416,11 +417,9 @@ class Database:
         """
         cursor = self.execute(sql, tuple(params or tuple()))
         # Row results will be dataclasses
-        cursor.row_trace = apsw.ext.DataClassRowFactory(
-            dataclass_kwargs={"frozen": True}
-        )
+        cursor.row_trace = AttrDictRowFactory()
         # Yield attrdict so rows can be accessed as row.id or row['id']
-        for row in cursor: yield AttrDict(row.__dict__)
+        for row in cursor: yield row
         # Cleanup the row_trace
         cursor.row_trace = None
 

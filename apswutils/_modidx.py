@@ -5,4 +5,7 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://AnswerDotAI.github.io',
                 'git_url': 'https://github.com/AnswerDotAI/apswutils',
                 'lib_path': 'apswutils'},
-  'syms': {'apswutils.db': {}, 'apswutils.utils': {}}}
+  'syms': { 'apswutils.db': {},
+            'apswutils.ext': { 'apswutils.ext.AttrDictRowFactory': ('ext.html#attrdictrowfactory', 'apswutils/ext.py'),
+                               'apswutils.ext.AttrDictRowFactory.__call__': ('ext.html#attrdictrowfactory.__call__', 'apswutils/ext.py')},
+            'apswutils.utils': {}}}
