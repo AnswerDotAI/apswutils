@@ -242,3 +242,75 @@ except: print("Delete succeeded!")
 | sqlite3.dbapi2.OperationalError | apsw.Error | General error, OperationalError is now proxied to apsw.Error |
 | sqlite3.dbapi2.OperationalError | apsw.SQLError | When an error is due to flawed SQL statements |
 | sqlite3.ProgrammingError | apsw.ConnectionClosedError | Caused by an improperly closed database file |
+
+## Handling of default values
+
+Default values are handled as expected, including expression-based
+default values:
+
+``` python
+db.execute("""
+DROP TABLE IF EXISTS migrations;
+CREATE TABLE IF NOT EXISTS migrations (
+    id INTEGER PRIMARY KEY,
+    name TEXT DEFAULT 'foo',
+    cexpr TEXT DEFAULT ('abra' || 'cadabra'),
+    rand INTEGER DEFAULT (random()),
+    unix_epoch FLOAT DEFAULT (unixepoch('subsec')),
+    json_array JSON DEFAULT (json_array(1,2,3,4)),
+    inserted_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+""")
+```
+
+    <apsw.Cursor>
+
+``` python
+migrations = Table(db, 'migrations')
+migrations.default_values
+```
+
+    {'name': 'foo',
+     'cexpr': SQLExpr: 'abra' || 'cadabra',
+     'rand': SQLExpr: random(),
+     'unix_epoch': SQLExpr: unixepoch('subsec'),
+     'json_array': SQLExpr: json_array(1,2,3,4),
+     'inserted_at': SQLExpr: CURRENT_TIMESTAMP}
+
+``` python
+assert all([type(x) is SQLExpr for x in list(migrations.default_values.values())[1:]])
+```
+
+``` python
+migrations.insert(dict(id=0))
+migrations.insert(dict(id=1))
+```
+
+    <Table migrations (id, name, cexpr, rand, unix_epoch, json_array, inserted_at)>
+
+Default expressions are executed independently for each row on row
+insertion:
+
+``` python
+rows = list(migrations.rows)
+rows
+```
+
+    [{'id': 0,
+      'name': 'foo',
+      'cexpr': 'abracadabra',
+      'rand': 8201569685582150332,
+      'unix_epoch': 1741481111.188,
+      'json_array': '[1,2,3,4]',
+      'inserted_at': '2025-03-09 00:45:11'},
+     {'id': 1,
+      'name': 'foo',
+      'cexpr': 'abracadabra',
+      'rand': 1625289491289542947,
+      'unix_epoch': 1741481111.19,
+      'json_array': '[1,2,3,4]',
+      'inserted_at': '2025-03-09 00:45:11'}]
+
+``` python
+assert rows[0]['rand'] != rows[1]['rand']
+```
