@@ -1,5 +1,5 @@
 # This file is from sqlite-utils and copyright and license is the same as that project
-__all__ = ['Database', 'Queryable', 'Table', 'View']
+__all__ = ['Database', 'Queryable', 'Table', 'View', 'SQLExpr']
 
 from .utils import chunks, hash_record, suggest_column_types, types_for_column_types, column_affinity, find_spatialite, cursor_row2dict
 from collections import namedtuple
@@ -8,6 +8,7 @@ from typing import cast, Any, Callable, Dict, Generator, Iterable, Union, Option
 from functools import cache
 import contextlib, datetime, decimal, inspect, itertools, json, os, pathlib, re, secrets, textwrap, binascii, uuid, logging
 import apsw, apsw.ext, apsw.bestpractice
+from fastcore.all import asdict
 
 logger = logging.getLogger('apsw')
 logger.setLevel(logging.ERROR)
@@ -3126,6 +3127,7 @@ class Table(Queryable):
         num_records_processed = 0
         # Fix up any records with square braces in the column names
         records = fix_square_braces(records)
+        records = remove_default_sql_exprs(records)
         # We can only handle a max of 999 variables in a SQL insert, so
         # we need to adjust the batch_size down if we have too many cols
         records = iter(records)
@@ -3720,9 +3722,20 @@ def fix_square_braces(records: Iterable[Dict[str, Any]]):
         else:
             yield record
 
+def remove_default_sql_exprs(records: Iterable[Dict[str, Any]]):
+    for record in records:
+        yield {k: v for k, v in asdict(record).items() if type(v) is not SQLExpr or not v.default}
 
+class SQLExpr():
+    def __init__(self, expr, default=False): self.expr, self.default = expr, default
+    def __str__(self): return f'SQLExpr: {self.expr}'
+    __repr__ = __str__
+
+# Match anything that is not a single quote, then match anything that is an escaped single quote
+# (any number of times), then repeat the whole process
+_sql_string_datatype_matcher = re.compile(r"^'([^']*(\\')*)*'$")
 def _decode_default_value(value):
-    if value.startswith("'") and value.endswith("'"):
+    if _sql_string_datatype_matcher.match(value):
         # It's a string
         return value[1:-1]
     if value.isdigit():
@@ -3737,4 +3750,4 @@ def _decode_default_value(value):
         return float(value)
     except ValueError:
         pass
-    return value
+    return SQLExpr(value, True)
