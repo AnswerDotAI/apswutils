@@ -8,7 +8,7 @@ from typing import cast, Any, Callable, Dict, Generator, Iterable, Union, Option
 from functools import cache
 import contextlib, datetime, decimal, inspect, itertools, json, os, pathlib, re, secrets, textwrap, binascii, uuid, logging
 import apsw, apsw.ext, apsw.bestpractice
-from fastcore.all import asdict
+from fastcore.utils import asdict
 
 logger = logging.getLogger('apsw')
 logger.setLevel(logging.ERROR)
