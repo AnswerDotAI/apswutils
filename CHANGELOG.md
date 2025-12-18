@@ -1,5 +1,9 @@
 # Release notes
 
+## 0.1.2
+
+- Fix SQLExpr repr
+
 ## 0.1.1
 
 - Query fix to accept dict as parameters bug
