@@ -3723,14 +3723,14 @@ def fix_square_braces(records: Iterable[Dict[str, Any]]):
         else:
             yield record
 
-def remove_default_sql_exprs(records: Iterable[Dict[str, Any]]):
-    for record in records:
-        yield {k: v for k, v in asdict(record).items() if type(v) is not SQLExpr or not v.default}
-
 class SQLExpr():
     def __init__(self, expr, default=False): self.expr, self.default = expr, default
     def __str__(self): return f'SQLExpr: {self.expr}'
-    __repr__ = __str__
+    def __repr__(self): return 'UNSET'
+
+def remove_default_sql_exprs(records: Iterable[Dict[str, Any]]):
+    for record in records:
+        yield {k: v for k, v in asdict(record).items() if type(v) is not SQLExpr or not v.default}
 
 # Match anything that is not a single quote, then match anything that is an escaped single quote
 # (any number of times), then repeat the whole process
