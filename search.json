@@ -1,0 +1,82 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "apswutils",
+    "section": "",
+    "text": "TipWhere to find the complete documentation for this library\n\n\n\nIf you want to learn about everything this project can do, we recommend reading the Python library section of the sqlite-utils project here.\nThis project wouldn’t exist without Simon Willison and his excellent sqlite-utils project. Most of this project is his code, with some minor changes made to it.",
+    "crumbs": [
+      "apswutils"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "apswutils",
+    "section": "Install",
+    "text": "Install\npip install apswutils",
+    "crumbs": [
+      "apswutils"
+    ]
+  },
+  {
+    "objectID": "index.html#use",
+    "href": "index.html#use",
+    "title": "apswutils",
+    "section": "Use",
+    "text": "Use\nFirst, import the apswutils library. Through the use of the all attribute in our Python modules by using import * we only bring in the Database, Queryable, Table, View classes. There’s no risk of namespace pollution.\n\nfrom apswutils.db import *\n\nThen we create a SQLite database. For the sake of convienance we’re doing it in-memory with the :memory: special string. If you wanted something more persistent, name it something not surrounded by colons, data.db is a common file name.\n\ndb = Database(\":memory:\")\n\nLet’s drop (aka ‘delete’) any tables that might exist. These docs also serve as a test harness, and we want to make certain we are starting with a clean slate. This also serves as a handy sneak preview of some of the features of this library.\n\nfor t in db.tables: t.drop()\n\nUser tables are a handy way to create a useful example with some real-world meaning. To do this, we first instantiate the users table object:\n\nusers = Table(db, 'Users')\nusers\n\n&lt;Table Users (does not exist yet)&gt;\n\n\nThe table doesn’t exist yet, so let’s add some columns via the Table.create method:\n\nusers.create(columns=dict(id=int, name=str, age=int))\nusers\n\n&lt;Table Users (id, name, age)&gt;\n\n\nWhat if we need to change the table structure?\nFor example User tables often include things like password field. Let’s add that now by calling create again, but this time with transform=True. We should now see that the users table now has the pwd:str field added.\n\nusers.create(columns=dict(id=int, name=str, age=int, pwd=str), transform=True, pk='id')\nusers\n\n&lt;Table Users (id, name, age, pwd)&gt;\n\n\n\nprint(db.schema)\n\nCREATE TABLE \"Users\" (\n   [id] INTEGER PRIMARY KEY,\n   [name] TEXT,\n   [age] INTEGER,\n   [pwd] TEXT\n);",
+    "crumbs": [
+      "apswutils"
+    ]
+  },
+  {
+    "objectID": "index.html#queries",
+    "href": "index.html#queries",
+    "title": "apswutils",
+    "section": "Queries",
+    "text": "Queries\nLet’s add some users to query:\n\nusers.insert(dict(name='Raven', age=8, pwd='s3cret'))\nusers.insert(dict(name='Magpie', age=5, pwd='supersecret'))\nusers.insert(dict(name='Crow', age=12, pwd='verysecret'))\nusers.insert(dict(name='Pigeon', age=3, pwd='keptsecret'))\nusers.insert(dict(name='Eagle', age=7, pwd='s3cr3t'))\n\n&lt;Table Users (id, name, age, pwd)&gt;\n\n\nA simple unfiltered select can be executed using rows property on the table object.\n\nusers.rows\n\n&lt;generator object Queryable.rows_where&gt;\n\n\nLet’s iterate over that generator to see the results:\n\n[o for o in users.rows]\n\n[{'id': 1, 'name': 'Raven', 'age': 8, 'pwd': 's3cret'},\n {'id': 2, 'name': 'Magpie', 'age': 5, 'pwd': 'supersecret'},\n {'id': 3, 'name': 'Crow', 'age': 12, 'pwd': 'verysecret'},\n {'id': 4, 'name': 'Pigeon', 'age': 3, 'pwd': 'keptsecret'},\n {'id': 5, 'name': 'Eagle', 'age': 7, 'pwd': 's3cr3t'}]\n\n\nFiltering can be done via the rows_where function:\n\n[o for o in users.rows_where('age &gt; 3')]\n\n[{'id': 1, 'name': 'Raven', 'age': 8, 'pwd': 's3cret'},\n {'id': 2, 'name': 'Magpie', 'age': 5, 'pwd': 'supersecret'},\n {'id': 3, 'name': 'Crow', 'age': 12, 'pwd': 'verysecret'},\n {'id': 5, 'name': 'Eagle', 'age': 7, 'pwd': 's3cr3t'}]\n\n\nWe can also limit the results:\n\n[o for o in users.rows_where('age &gt; 3', limit=2)]\n\n[{'id': 1, 'name': 'Raven', 'age': 8, 'pwd': 's3cret'},\n {'id': 2, 'name': 'Magpie', 'age': 5, 'pwd': 'supersecret'}]\n\n\nThe offset keyword can be combined with the limit keyword.\n\n[o for o in users.rows_where('age &gt; 3', limit=2, offset=1)]\n\n[{'id': 2, 'name': 'Magpie', 'age': 5, 'pwd': 'supersecret'},\n {'id': 3, 'name': 'Crow', 'age': 12, 'pwd': 'verysecret'}]\n\n\nThe offset must be used with limit or raise a ValueError:\n\ntry:\n    [o for o in users.rows_where(offset=1)]\nexcept ValueError as e:\n    print(e)\n\nCannot use offset without limit",
+    "crumbs": [
+      "apswutils"
+    ]
+  },
+  {
+    "objectID": "index.html#transactions",
+    "href": "index.html#transactions",
+    "title": "apswutils",
+    "section": "Transactions",
+    "text": "Transactions\nIf you have any SQL calls outside an explicit transaction, they are committed instantly.\nTo group 2 or more queries together into 1 transaction, wrap them in a BEGIN and COMMIT, executing ROLLBACK if an exception is caught:\n\nusers.get(1)\n\n{'id': 1, 'name': 'Raven', 'age': 8, 'pwd': 's3cret'}\n\n\n\ndb.begin()\ntry:\n    users.delete([1])\n    db.execute('FNOOORD')\n    db.commit()\nexcept Exception as e:\n    print(e)\n    db.rollback()\n\nnear \"FNOOORD\": syntax error\n\n\nBecause the transaction was rolled back, the user was not deleted:\n\nusers.get(1)\n\n{'id': 1, 'name': 'Raven', 'age': 8, 'pwd': 's3cret'}\n\n\nLet’s do it again, but without the DB error, to check the transaction is successful:\n\ndb.begin()\ntry:\n    users.delete([1])\n    db.commit()\nexcept Exception as e: db.rollback()\n\n\ntry:\n    users.get(1)\n    print(\"Delete failed!\")\nexcept: print(\"Delete succeeded!\")\n\nDelete succeeded!",
+    "crumbs": [
+      "apswutils"
+    ]
+  },
+  {
+    "objectID": "index.html#differences-from-sqlite-utils-and-sqlite-minutils",
+    "href": "index.html#differences-from-sqlite-utils-and-sqlite-minutils",
+    "title": "apswutils",
+    "section": "Differences from sqlite-utils and sqlite-minutils",
+    "text": "Differences from sqlite-utils and sqlite-minutils\n\nWAL is the default\nSetting Database(recursive_triggers=False) works as expected\nPrimary keys must be set on a table for it to be a target of a foreign key\nErrors have been changed minimally, future PRs will change them incrementally",
+    "crumbs": [
+      "apswutils"
+    ]
+  },
+  {
+    "objectID": "index.html#differences-in-error-handling",
+    "href": "index.html#differences-in-error-handling",
+    "title": "apswutils",
+    "section": "Differences in error handling",
+    "text": "Differences in error handling\n\n\n\n\n\n\n\n\nOld/sqlite3/dbapi\nNew/APSW\nReason\n\n\n\n\nIntegrityError\napsw.ConstraintError\nCaused due to SQL transformation blocked on database constraints\n\n\nsqlite3.dbapi2.OperationalError\napsw.Error\nGeneral error, OperationalError is now proxied to apsw.Error\n\n\nsqlite3.dbapi2.OperationalError\napsw.SQLError\nWhen an error is due to flawed SQL statements\n\n\nsqlite3.ProgrammingError\napsw.ConnectionClosedError\nCaused by an improperly closed database file",
+    "crumbs": [
+      "apswutils"
+    ]
+  },
+  {
+    "objectID": "index.html#handling-of-default-values",
+    "href": "index.html#handling-of-default-values",
+    "title": "apswutils",
+    "section": "Handling of default values",
+    "text": "Handling of default values\nDefault values are handled as expected, including expression-based default values:\n\ndb.execute(\"\"\"\nDROP TABLE IF EXISTS migrations;\nCREATE TABLE IF NOT EXISTS migrations (\n    id INTEGER PRIMARY KEY,\n    name TEXT DEFAULT 'foo',\n    cexpr TEXT DEFAULT ('abra' || 'cadabra'),\n    rand INTEGER DEFAULT (random()),\n    unix_epoch FLOAT DEFAULT (unixepoch('subsec')),\n    json_array JSON DEFAULT (json_array(1,2,3,4)),\n    inserted_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL\n);\n\"\"\")\n\n&lt;apsw.Cursor&gt;\n\n\n\nmigrations = Table(db, 'migrations')\nmigrations.default_values\n\n{'name': 'foo',\n 'cexpr': SQLExpr: 'abra' || 'cadabra',\n 'rand': SQLExpr: random(),\n 'unix_epoch': SQLExpr: unixepoch('subsec'),\n 'json_array': SQLExpr: json_array(1,2,3,4),\n 'inserted_at': SQLExpr: CURRENT_TIMESTAMP}\n\n\n\nassert all([type(x) is SQLExpr for x in list(migrations.default_values.values())[1:]])\n\n\nmigrations.insert(dict(id=0))\nmigrations.insert(dict(id=1))\n\n&lt;Table migrations (id, name, cexpr, rand, unix_epoch, json_array, inserted_at)&gt;\n\n\nDefault expressions are executed independently for each row on row insertion:\n\nrows = list(migrations.rows)\nrows\n\n[{'id': 0,\n  'name': 'foo',\n  'cexpr': 'abracadabra',\n  'rand': 8201569685582150332,\n  'unix_epoch': 1741481111.188,\n  'json_array': '[1,2,3,4]',\n  'inserted_at': '2025-03-09 00:45:11'},\n {'id': 1,\n  'name': 'foo',\n  'cexpr': 'abracadabra',\n  'rand': 1625289491289542947,\n  'unix_epoch': 1741481111.19,\n  'json_array': '[1,2,3,4]',\n  'inserted_at': '2025-03-09 00:45:11'}]\n\n\n\nassert rows[0]['rand'] != rows[1]['rand']",
+    "crumbs": [
+      "apswutils"
+    ]
+  }
+]
