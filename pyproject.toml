@@ -3,19 +3,16 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name="apswutils"
+name = "apswutils"
 dynamic = ["version"]
 description = "A fork of sqlite-minutils for apsw"
 readme = "README.md"
-requires-python=">=3.9"
+requires-python = ">=3.9"
 license = {text = "Apache-2.0"}
 authors = [{name = "Daniel and Audrey Roy Greenfeld, and Jeremy Howard", email = "info@fast.ai"}]
 keywords = ['nbdev', 'jupyter', 'notebook', 'python', 'sqlite', 'apsw']
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3 :: Only",
-]
-dependencies = ["fastcore","apsw"]
+classifiers = ["Natural Language :: English", "Intended Audience :: Developers", "Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3 :: Only"]
+dependencies = ['fastcore', 'apsw']
 
 [project.urls]
 Repository = "https://github.com/AnswerDotAI/apswutils"
