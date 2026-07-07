@@ -1,6 +1,8 @@
 from apswutils import Database
 import apsw
+import gc
 import pytest
+import weakref
 
 
 def test_recursive_triggers():
@@ -31,6 +33,17 @@ def test_sqlite_version():
     as_string = ".".join(map(str, version))
     actual = next(db.query("select sqlite_version() as v"))["v"]
     assert actual == as_string
+
+
+def test_table_cache_does_not_keep_database_alive():
+    db = Database(memory=True)
+    table = db.table("dogs")
+    ref = weakref.ref(db)
+    assert table is db.table("dogs")
+
+    del table, db
+    gc.collect()
+    assert ref() is None
 
 
 @pytest.mark.parametrize("memory", [True, False])

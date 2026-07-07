@@ -5,7 +5,6 @@ from .utils import chunks, hash_record, suggest_column_types, types_for_column_t
 from collections import namedtuple
 from collections.abc import Mapping
 from typing import cast, Any, Callable, Dict, Generator, Iterable, Union, Optional, List, Tuple, Iterator
-from functools import cache
 import contextlib, datetime, decimal, inspect, itertools, json, os, pathlib, re, secrets, textwrap, binascii, uuid, logging
 import apsw, apsw.ext, apsw.bestpractice
 from fastcore.utils import asdict
@@ -279,6 +278,9 @@ class Database:
         self._registered_functions: set = set()
         self.use_counts_table = use_counts_table
         self.strict = strict
+        # Per-instance cache: a functools.cache on this method keeps Database
+        # objects alive globally until interpreter shutdown.
+        self._table_cache = {}
 
     def close(self):
         "Close the SQLite connection, and the underlying database file"
@@ -479,7 +481,6 @@ class Database:
         return wrapper
 
     @convert_lists_to_tuples
-    @cache
     def table(self, table_name: str, **kwargs) -> Union["Table", "View"]:
         """
         Return a table object, optionally configured with default options.
@@ -488,11 +489,15 @@ class Database:
 
         :param table_name: Name of the table
         """
+        key = (table_name, tuple(kwargs.items()))
+        if key in self._table_cache: return self._table_cache[key]
         if table_name in self.view_names():
-            return View(self, table_name, **kwargs)
+            res = View(self, table_name, **kwargs)
         else:
             kwargs.setdefault("strict", self.strict)
-            return Table(self, table_name, **kwargs)
+            res = Table(self, table_name, **kwargs)
+        self._table_cache[key] = res
+        return res
 
     def quote(self, value: str) -> str:
         """
