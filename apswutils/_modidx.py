@@ -5,4 +5,4 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://AnswerDotAI.github.io',
                 'git_url': 'https://github.com/AnswerDotAI/apswutils',
                 'lib_path': 'apswutils'},
-  'syms': {'apswutils.db': {}, 'apswutils.utils': {}}}
+  'syms': {}}
