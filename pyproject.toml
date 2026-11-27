@@ -7,7 +7,7 @@ name = "apswutils"
 dynamic = ["version"]
 description = "A fork of sqlite-minutils for apsw"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "Apache-2.0"
 authors = [{name = "Daniel and Audrey Roy Greenfeld, and Jeremy Howard", email = "info@fast.ai"}]
 keywords = ['nbdev', 'jupyter', 'notebook', 'python', 'sqlite', 'apsw']
